@@ -11,8 +11,8 @@
             "type": "String"
         },
         "variable_versionToKeep": {
-            "defaultValue": 5,
-            "type": "Integer"
+            "defaultValue": "5",
+            "type": "String"
         }
     },
     "variables": {},
