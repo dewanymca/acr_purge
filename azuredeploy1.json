@@ -59,7 +59,7 @@
                             },
                             "type": "Http",
                             "inputs": {
-                                "body": @concat("grant_type=client_credentials&resource=https://management.core.windows.net/&client_id=",@{parameters('acr_clientid')},"&client_secret=",@{parameters('acr_clientsecret')}),
+                                "body": "@concat('grant_type=client_credentials&resource=https://management.core.windows.net/&client_id=',@{parameters('acr_clientid')},'&client_secret=',@{parameters('acr_clientsecret')})",
                                 "headers": {
                                     "content-type": "application/x-www-form-urlencoded"
                                 },
