@@ -14,13 +14,13 @@
             "defaultValue": "5",
             "type": "String"
         },
-		"acr_clientid":{
-			"defaultValue" :"14ca82ab-00b2-4369-aa82-c4872aa26a47",
-			"type": "String"
-		},
-		"acr_clientsecret":{
-			"defaultValue" :"14ca82ab-00b2-4369-aa82-c4872aa26a47",
-			"type": "String"
+	"acr_clientid":{
+	    "defaultValue" :"14ca82ab-00b2-4369-aa82-c4872aa26a47",
+	    "type": "String"
+	},
+	"acr_clientsecret":{
+	    "defaultValue" :"14ca82ab-00b2-4369-aa82-c4872aa26a47",
+	     "type": "String"
 		}
     },
     "variables": {},
