@@ -13,7 +13,15 @@
         "variable_versionToKeep": {
             "defaultValue": "5",
             "type": "String"
-        }
+        },
+		"acr_clientid":{
+			"defaultValue" :"14ca82ab-00b2-4369-aa82-c4872aa26a47"
+			"type": "String"
+		},
+		"acr_clientsecret":{
+			"defaultValue" :"14ca82ab-00b2-4369-aa82-c4872aa26a47"
+			"type": "String"
+		}
     },
     "variables": {},
     "resources": [
@@ -51,7 +59,7 @@
                             },
                             "type": "Http",
                             "inputs": {
-                                "body": "grant_type=client_credentials&resource=https://management.core.windows.net/&client_id=14ca82ab-00b2-4369-aa82-c4872aa26a47&client_secret=PWOTDW_u1y~~SU__jcfH22ig.895-wPHK2",
+                                "body": "grant_type=client_credentials&resource=https://management.core.windows.net/&client_id="[parameters('acr_clientid')]"&client_secret="[parameters('acr_clientsecret')]"",
                                 "headers": {
                                     "content-type": "application/x-www-form-urlencoded"
                                 },
