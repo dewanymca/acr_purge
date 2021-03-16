@@ -9,6 +9,10 @@
         "connections_azuremonitorlogs_externalid": {
             "defaultValue": "/subscriptions/6d101836-cb91-40f9-bd75-9bede970b149/resourceGroups/CareServiceAlerts/providers/Microsoft.Web/connections/azuremonitorlogs",
             "type": "String"
+        },
+        "variable_versionToKeep": {
+            "defaultValue": 5
+            "type": "Integer"
         }
     },
     "variables": {},
@@ -100,7 +104,7 @@
                                     {
                                         "name": "versionToKeep",
                                         "type": "integer",
-                                        "value": 80
+                                        "value": "[parameters('variable_versionToKeep')]"
                                     }
                                 ]
                             }
