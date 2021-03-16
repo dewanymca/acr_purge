@@ -11,8 +11,8 @@
             "type": "String"
         },
         "variable_versionToKeep": {
-            "defaultValue": "5",
-            "type": "String"
+            "defaultValue": 5,
+            "type": "Int"
         },
 	"acr_clientid":{
 	    "defaultValue" :"14ca82ab-00b2-4369-aa82-c4872aa26a47",
@@ -59,7 +59,7 @@
                             },
                             "type": "Http",
                             "inputs": {
-                                "body": "grant_type=client_credentials&resource=https://management.core.windows.net/&client_id=[parameters('acr_clientid')]&client_secret=[parameters('acr_clientsecret')]",
+                                "body": "grant_type=client_credentials&resource=https://management.core.windows.net/&client_id=@{parameters('acr_clientid')}&client_secret=@{parameters('acr_clientsecret')}",
                                 "headers": {
                                     "content-type": "application/x-www-form-urlencoded"
                                 },
