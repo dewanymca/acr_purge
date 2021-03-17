@@ -6,10 +6,6 @@
             "defaultValue": "ACR_Image_Purge_Prod",
             "type": "String"
         },
-        "connections_azuremonitorlogs_externalid": {
-            "defaultValue": "/subscriptions/6d101836-cb91-40f9-bd75-9bede970b149/resourceGroups/CareServiceAlerts/providers/Microsoft.Web/connections/azuremonitorlogs",
-            "type": "String"
-        },
         "variable_versionToKeep": {
             "defaultValue": 5,
             "type": "Int"
@@ -305,9 +301,9 @@
                     "$connections": {
                         "value": {
                             "azuremonitorlogs": {
-                                "connectionId": "[parameters('connections_azuremonitorlogs_externalid')]",
+                                "connectionId": "/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Web/connections/azuremonitorlogs",
                                 "connectionName": "azuremonitorlogs",
-                                "id": "/subscriptions/6d101836-cb91-40f9-bd75-9bede970b149/providers/Microsoft.Web/locations/eastus/managedApis/azuremonitorlogs"
+                                "id": "/subscriptions/{subscriptionId}/providers/Microsoft.Web/locations/eastus/managedApis/azuremonitorlogs"
                             }
                         }
                     }
