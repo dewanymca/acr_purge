@@ -6,6 +6,10 @@
             "defaultValue": "ACR_Image_Purge_Prod",
             "type": "String"
         },
+	"resourceLocation": {
+            "defaultValue": "eastus",
+            "type": "String"
+        },    
         "variable_versionToKeep": {
             "defaultValue": 5,
             "type": "Int"
@@ -301,9 +305,9 @@
                     "$connections": {
                         "value": {
                             "azuremonitorlogs": {
-                                "connectionId": "[concat('/subscriptions',subscription().id,'/resourceGroups/',resourceGroup().name,'/providers/Microsoft.Web/connections/azuremonitorlogs')]",
+                                "connectionId":  "[resourceId('Microsoft.Web/connections','azuremonitorlogs')]"
                                 "connectionName": "azuremonitorlogs",
-                                "id": "[concat('/subscriptions',subscription().id,'providers/Microsoft.Web/locations/eastus/managedApis/azuremonitorlogs')]" 
+                                "id": "[concat(subscription().id,'/providers/Microsoft.Web/locations/',parameters('resourceLocation'),'/managedApis/azuremonitorlogs')]" 
                             }
                         }
                     }
