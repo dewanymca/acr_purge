@@ -301,9 +301,9 @@
                     "$connections": {
                         "value": {
                             "azuremonitorlogs": {
-                                "connectionId": "/subscriptions/[subscription().subscriptionId]/resourceGroups/{resourceGroupName}/providers/Microsoft.Web/connections/azuremonitorlogs",
+                                "connectionId": "[concat('/subscriptions',subscription().id,'/resourceGroups/',resourceGroup().name,'/providers/Microsoft.Web/connections/azuremonitorlogs')]",
                                 "connectionName": "azuremonitorlogs",
-                                "id": "/subscriptions/[subscription().subscriptionId]/providers/Microsoft.Web/locations/eastus/managedApis/azuremonitorlogs"
+                                "id": "[concat('/subscriptions',subscription().id,'providers/Microsoft.Web/locations/eastus/managedApis/azuremonitorlogs')]" 
                             }
                         }
                     }
