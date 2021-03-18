@@ -354,7 +354,7 @@
 						},
 						"desired_namespace": {
 							"type": "string"
-						},
+						}
 					},
 					"triggers": {
 						"Recurrence": {
@@ -387,7 +387,7 @@
 					},
 					"desired_namespace": {
 						"value": "[parameters('desired_namespace')]"
-					},
+					}
 				}
 			},
 			"name": "[parameters('logicAppName')]",
