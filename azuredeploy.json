@@ -1,1 +1,422 @@
-
+{
+	"$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"logicAppLocation": {
+			"type": "string",
+			"minLength": 1,
+			"allowedValues": [
+				"[resourceGroup().location]",
+				"eastasia",
+				"southeastasia",
+				"centralus",
+				"eastus",
+				"eastus2",
+				"westus",
+				"northcentralus",
+				"southcentralus",
+				"northeurope",
+				"westeurope",
+				"japanwest",
+				"japaneast",
+				"brazilsouth",
+				"australiaeast",
+				"australiasoutheast",
+				"southindia",
+				"centralindia",
+				"westindia",
+				"canadacentral",
+				"canadaeast",
+				"uksouth",
+				"ukwest",
+				"westcentralus",
+				"westus2"
+			],
+			"defaultValue": "eastus"
+		},
+		"logicAppName": {
+			"type": "string",
+			"minLength": 1,
+			"maxLength": 80,
+			"metadata": {
+				"description": "Name of the Logic App.",
+				"defaultValue": "Deliver_ACR_Image_Purge_Prod"
+			}
+		},
+		"version_to_keep": {
+			"defaultValue": 5,
+			"type": "int"
+		},
+		"desired_namespace": {
+			"defaultValue": "deliver",
+			"type": "string"
+		},
+		"acr_clientid": {
+			"defaultValue": "<client_id>",
+			"type": "string"
+		},
+		"acr_clientsecret": {
+			"defaultValue": "<client_secret>",
+			"type": "securestring"
+		},
+		"logs_connection_name": {
+			"type": "string",
+			"defaultValue": "deliver_log_workspace_connection"
+		},
+		"logs_analytics_name": {
+			"type": "string",
+			"defaultValue": "AKS-CLUSTER-SC-PROD-EASTUS-PD4B-WORKSPACE"
+		}
+	},
+	"variables": {},
+	"resources": [
+		{
+			"properties": {
+				"state": "Enabled",
+				"definition": {
+					"$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+					"actions": {
+						"GetAADToken": {
+							"inputs": {
+								"body": "grant_type=client_credentials&resource=https://management.core.windows.net/&client_id=@{parameters('acr_clientid')}&client_secret=@{parameters('acr_clientsecret')})",
+								"headers": {
+									"content-type": "application/x-www-form-urlencoded"
+								},
+								"method": "POST",
+								"uri": "https://login.microsoftonline.com/microsoft.onmicrosoft.com/oauth2/token?api-version=1.0"
+							},
+							"runAfter": {
+								"Run_query_and_list_results": [
+									"Succeeded"
+								]
+							},
+							"type": "Http"
+						},
+						"GetACRToken": {
+							"inputs": {
+								"body": "grant_type=access_token&service=acrsceastusxe5d.azurecr.io&tenant=72f988bf-86f1-41af-91ab-2d7cd011db47&access_token=@{body('GetAADToken')?['access_token']}",
+								"headers": {
+									"content-type": "application/x-www-form-urlencoded"
+								},
+								"method": "POST",
+								"uri": "https://acrsceastusxe5d.azurecr.io/oauth2/exchange"
+							},
+							"runAfter": {
+								"GetAADToken": [
+									"Succeeded"
+								]
+							},
+							"type": "Http"
+						},
+						"Init_isFound": {
+							"inputs": {
+								"variables": [
+									{
+										"name": "isFound",
+										"type": "integer",
+										"value": -1
+									}
+								]
+							},
+							"runAfter": {
+								"GetACRToken": [
+									"Succeeded"
+								]
+							},
+							"type": "InitializeVariable"
+						},
+						"Init_versionToKeep": {
+							"inputs": {
+								"variables": [
+									{
+										"name": "versionToKeep",
+										"type": "integer",
+										"value": "[parameters('version_to_keep')]"
+									}
+								]
+							},
+							"runAfter": {
+								"Init_isFound": [
+									"Succeeded"
+								]
+							},
+							"type": "InitializeVariable"
+						},
+						"Iterate_Over_Image": {
+							"actions": {
+								"Get_Read_Delete_Token_Repository": {
+									"inputs": {
+										"body": "grant_type=refresh_token&service=acrsceastusxe5d.azurecr.io&scope=repository:@{items('Iterate_Over_Image')?['Image']}:delete,metadata_read&refresh_token=@{body('GetACRToken')['refresh_token']}",
+										"headers": {
+											"content-type": "application/x-www-form-urlencoded"
+										},
+										"method": "POST",
+										"uri": "https://acrsceastusxe5d.azurecr.io/oauth2/token"
+									},
+									"runAfter": {},
+									"type": "Http"
+								},
+								"IterateOverTags": {
+									"actions": {
+										"CheckForMinTagCondition": {
+											"actions": {
+												"setVersionFoundTo1": {
+													"inputs": {
+														"name": "isFound",
+														"value": 1
+													},
+													"runAfter": {},
+													"type": "SetVariable"
+												}
+											},
+											"else": {
+												"actions": {
+													"Condition": {
+														"actions": {
+															"Delete_Tag": {
+																"inputs": {
+																	"headers": {
+																		"Authorization": "Bearer @{body('Get_Read_Delete_Token_Repository')['access_token']}"
+																	},
+																	"method": "DELETE",
+																	"uri": "https://acrsceastusxe5d.azurecr.io/v2/@{items('Iterate_Over_Image')?['Image']}/manifests/@{items('IterateOverTags')?['digest']}"
+																},
+																"runAfter": {},
+																"type": "Http"
+															}
+														},
+														"else": {
+															"actions": {
+																"CheckVersionFound_ThenDecrement": {
+																	"actions": {
+																		"Decrement_versionToKeepBy1": {
+																			"inputs": {
+																				"name": "versionToKeep",
+																				"value": 1
+																			},
+																			"runAfter": {},
+																			"type": "DecrementVariable"
+																		}
+																	},
+																	"expression": {
+																		"and": [
+																			{
+																				"equals": [
+																					"@variables('isFound')",
+																					1
+																				]
+																			}
+																		]
+																	},
+																	"runAfter": {},
+																	"type": "If"
+																}
+															}
+														},
+														"expression": {
+															"and": [
+																{
+																	"equals": [
+																		"@variables('isFound')",
+																		1
+																	]
+																},
+																{
+																	"equals": [
+																		"@variables('versionToKeep')",
+																		0
+																	]
+																}
+															]
+														},
+														"runAfter": {},
+														"type": "If"
+													}
+												}
+											},
+											"expression": {
+												"and": [
+													{
+														"equals": [
+															"@items('IterateOverTags')?['name']",
+															"@items('Iterate_Over_Image')?['min_ImageTag']"
+														]
+													}
+												]
+											},
+											"runAfter": {},
+											"type": "If"
+										}
+									},
+									"foreach": "@body('Read_Repository_Tags')?['tags']",
+									"runAfter": {
+										"Reset_versionToKeep": [
+											"Succeeded"
+										]
+									},
+									"runtimeConfiguration": {
+										"concurrency": {
+											"repetitions": 1
+										}
+									},
+									"type": "Foreach"
+								},
+								"Read_Repository_Tags": {
+									"inputs": {
+										"headers": {
+											"Authorization": "Bearer @{body('Get_Read_Delete_Token_Repository')['access_token']}"
+										},
+										"method": "GET",
+										"uri": "https://acrsceastusxe5d.azurecr.io/acr/v1/@{items('Iterate_Over_Image')?['Image']}/_tags?n=100&orderby=timedesc"
+									},
+									"runAfter": {
+										"Get_Read_Delete_Token_Repository": [
+											"Succeeded"
+										]
+									},
+									"type": "Http"
+								},
+								"Reset_versionToKeep": {
+									"inputs": {
+										"name": "versionToKeep",
+										"value": "[parameters('version_to_keep')]"
+									},
+									"runAfter": {
+										"Set_isFound_To_Zero": [
+											"Succeeded"
+										]
+									},
+									"type": "SetVariable"
+								},
+								"Set_isFound_To_Zero": {
+									"inputs": {
+										"name": "isFound",
+										"value": 0
+									},
+									"runAfter": {
+										"Read_Repository_Tags": [
+											"Succeeded"
+										]
+									},
+									"type": "SetVariable"
+								}
+							},
+							"foreach": "@body('Run_query_and_list_results')?['value']",
+							"runAfter": {
+								"Init_versionToKeep": [
+									"Succeeded"
+								]
+							},
+							"runtimeConfiguration": {
+								"concurrency": {
+									"repetitions": 1
+								}
+							},
+							"type": "Foreach"
+						},
+						"Run_query_and_list_results": {
+							"inputs": {
+								"body": "union KubePodInventory, \nworkspace('LA-AKS-CLUSTER-SC-PROD-UKSOUTH-OXN6-WORKSPACE'). KubePodInventory, \nworkspace('LA-AKS-CLUSTER-SC-PROD-AUSTRALIAEAST-TZM0-WORKSPACE').KubePodInventory,\nworkspace('AKS-CLUSTER-SC-UAT-EASTUS-QRL6-WORKSPACE').KubePodInventory,\nworkspace('AKS-CLUSTER-SC-UAT-WESTUS2-5CHE-WORKSPACE').KubePodInventory\n| where Namespace  in ('@{parameters('desired_namespace')}')\n| where ContainerID !=''\n| distinct  ContainerID, Namespace, ClusterName,_ResourceId, Name\n| join kind= inner (\nunion ContainerInventory, \nworkspace('LA-AKS-CLUSTER-SC-PROD-UKSOUTH-OXN6-WORKSPACE'). ContainerInventory, \nworkspace('LA-AKS-CLUSTER-SC-PROD-AUSTRALIAEAST-TZM0-WORKSPACE').ContainerInventory,\nworkspace('AKS-CLUSTER-SC-UAT-EASTUS-QRL6-WORKSPACE').ContainerInventory,\nworkspace('AKS-CLUSTER-SC-UAT-WESTUS2-5CHE-WORKSPACE').ContainerInventory\n| extend env= case(_ResourceId contains \"uat\" , \"UAT\", \"Prod\")\n| where Repository contains 'acrsceastusxe5d'\n| where ContainerState !='Deleted'\n| distinct  Image, ImageID,Repository, ContainerID, ImageTag, TimeGenerated,_ResourceId, env, ContainerState)\non  ContainerID,_ResourceId\n| distinct  Image, ImageTag, ClusterName,env, Namespace,ContainerState\n| order by Image, ImageTag desc\n| summarize min(ImageTag) by Image,Namespace",
+								"host": {
+									"connection": {
+										"name": "@parameters('$connections')['azuremonitorlogs']['connectionId']"
+									}
+								},
+								"method": "post",
+								"path": "/queryData",
+								"queries": {
+									"resourcegroups": "RG-AKS-CLUSTER-SC-PROD-EASTUS",
+									"resourcename": "AKS-CLUSTER-SC-PROD-EASTUS-PD4B-WORKSPACE",
+									"resourcetype": "Log Analytics Workspace",
+									"subscriptions": "264614c3-e12f-4a52-8380-902410e8ac2d",
+									"timerange": "Last 24 hours"
+								}
+							},
+							"runAfter": {},
+							"type": "ApiConnection"
+						}
+					},
+					"contentVersion": "1.0.0.0",
+					"outputs": {},
+					"parameters": {
+						"$connections": {
+							"defaultValue": {},
+							"type": "Object"
+						},
+						"acr_clientid": {
+							"type": "string"
+						},
+						"acr_clientsecret": {
+							"type": "securestring"
+						},
+						"version_to_keep": {
+							"type": "int"
+						},
+						"desired_namespace": {
+							"type": "string"
+						},
+					},
+					"triggers": {
+						"Recurrence": {
+							"recurrence": {
+								"frequency": "Day",
+								"interval": 1
+							},
+							"type": "Recurrence"
+						}
+					}
+				},
+				"parameters": {
+					"$connections": {
+						"value": {
+							"azuremonitorlogs": {
+								"connectionId": "[resourceId('Microsoft.Web/connections', parameters('logs_connection_name'))]",
+								"connectionName": "[parameters('logs_connection_name')]",
+								"id": "[concat('/subscriptions/', '264614c3-e12f-4a52-8380-902410e8ac2d', '/providers/Microsoft.Web/locations/', parameters('logicAppLocation'), '/managedApis/', 'azuremonitorlogs')]"
+							}
+						}
+					},
+					"acr_clientid": {
+						"value": "[parameters('acr_clientid')]"
+					},
+					"acr_clientsecret": {
+						"value": "[parameters('acr_clientsecret')]"
+					},
+					"version_to_keep": {
+						"value": "[parameters('version_to_keep')]"
+					},
+					"desired_namespace": {
+						"value": "[parameters('desired_namespace')]"
+					},
+				}
+			},
+			"name": "[parameters('logicAppName')]",
+			"type": "Microsoft.Logic/workflows",
+			"location": "[parameters('logicAppLocation')]",
+			"tags": {
+				"displayName": "LogicApp"
+			},
+			"apiVersion": "2016-06-01",
+			"dependsOn": [
+				"[resourceId('Microsoft.Web/connections', parameters('logs_connection_name'))]"
+			]
+		},
+		{
+			"type": "Microsoft.Web/connections",
+			"apiVersion": "2016-06-01",
+			"name": "[parameters('logs_connection_name')]",
+			"location": "[parameters('logicAppLocation')]",
+			"properties": {
+				"displayName": "[parameters('logs_connection_name')]",
+				"customParameterValues": {},
+				"api": {
+					"id": "[concat('/subscriptions/264614c3-e12f-4a52-8380-902410e8ac2d/providers/Microsoft.Web/locations/eastus/managedApis/', 'azuremonitorlogs')]"
+				},
+				"parameterValues": {
+				
+				}
+			}
+		}
+	],
+	"outputs": {}
+}
