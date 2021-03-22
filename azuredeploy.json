@@ -62,10 +62,6 @@
 		"logs_connection_name": {
 			"type": "string",
 			"defaultValue": "deliver_log_workspace_connection"
-		},
-		"logs_analytics_name": {
-			"type": "string",
-			"defaultValue": "AKS-CLUSTER-SC-PROD-EASTUS-PD4B-WORKSPACE"
 		}
 	},
 	"variables": {},
