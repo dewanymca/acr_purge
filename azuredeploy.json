@@ -74,7 +74,7 @@
 					"actions": {
 						"GetAADToken": {
 							"inputs": {
-								"body": "grant_type=client_credentials&resource=https://management.core.windows.net/&client_id=@{parameters('acr_clientid')}&client_secret=@{parameters('acr_clientsecret')})",
+								"body": "grant_type=client_credentials&resource=https://management.core.windows.net/&client_id=@{parameters('acr_clientid')}&client_secret=@{parameters('acr_clientsecret')}",
 								"headers": {
 									"content-type": "application/x-www-form-urlencoded"
 								},
