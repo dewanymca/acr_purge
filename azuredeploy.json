@@ -154,95 +154,45 @@
 								},
 								"IterateOverTags": {
 									"actions": {
-										"CheckForMinTagCondition": {
+										"CheckForDeployedVersions": {
+										"actions": {
+											"setVersionFoundTo1": {
+												"inputs": {
+													"name": "isFound",
+													"value": 1
+												},
+												"runAfter": {},
+												"type": "SetVariable"
+											}
+										},
+										"else": {
 											"actions": {
-												"setVersionFoundTo1": {
+												"Delete_Tag": {
 													"inputs": {
-														"name": "isFound",
-														"value": 1
+														"headers": {
+															"Authorization": "Bearer @{body('Get_Read_Delete_Token_Repository')['access_token']}"
+														},
+														"method": "DELETE",
+														"uri": "https://acrsceastusxe5d.azurecr.io/v2/@{items('Iterate_Over_Image')?['Image']}/manifests/@{items('IterateOverTags')?['digest']}"
 													},
 													"runAfter": {},
-													"type": "SetVariable"
+													"type": "Http"
 												}
-											},
-											"else": {
-												"actions": {
-													"Condition": {
-														"actions": {
-															"Delete_Tag": {
-																"inputs": {
-																	"headers": {
-																		"Authorization": "Bearer @{body('Get_Read_Delete_Token_Repository')['access_token']}"
-																	},
-																	"method": "DELETE",
-																	"uri": "https://acrsceastusxe5d.azurecr.io/v2/@{items('Iterate_Over_Image')?['Image']}/manifests/@{items('IterateOverTags')?['digest']}"
-																},
-																"runAfter": {},
-																"type": "Http"
-															}
-														},
-														"else": {
-															"actions": {
-																"CheckVersionFound_ThenDecrement": {
-																	"actions": {
-																		"Decrement_versionToKeepBy1": {
-																			"inputs": {
-																				"name": "versionToKeep",
-																				"value": 1
-																			},
-																			"runAfter": {},
-																			"type": "DecrementVariable"
-																		}
-																	},
-																	"expression": {
-																		"and": [
-																			{
-																				"equals": [
-																					"@variables('isFound')",
-																					1
-																				]
-																			}
-																		]
-																	},
-																	"runAfter": {},
-																	"type": "If"
-																}
-															}
-														},
-														"expression": {
-															"and": [
-																{
-																	"equals": [
-																		"@variables('isFound')",
-																		1
-																	]
-																},
-																{
-																	"equals": [
-																		"@variables('versionToKeep')",
-																		0
-																	]
-																}
-															]
-														},
-														"runAfter": {},
-														"type": "If"
-													}
+											}
+										},
+										"expression": {
+											"and": [
+												{
+													"contains": [
+														"@items('Iterate_Over_Image')?['deployed_versions']",
+														"@items('IterateOverTags')?['name']"
+													]
 												}
-											},
-											"expression": {
-												"and": [
-													{
-														"equals": [
-															"@items('IterateOverTags')?['name']",
-															"@items('Iterate_Over_Image')?['min_ImageTag']"
-														]
-													}
-												]
-											},
-											"runAfter": {},
-											"type": "If"
-										}
+											]
+										},
+										"runAfter": {},
+										"type": "If"
+									}
 									},
 									"foreach": "@body('Read_Repository_Tags')?['tags']",
 									"runAfter": {
@@ -312,7 +262,7 @@
 						},
 						"Run_query_and_list_results": {
 							"inputs": {
-								"body": "union KubePodInventory, \nworkspace('LA-AKS-CLUSTER-SC-PROD-UKSOUTH-OXN6-WORKSPACE'). KubePodInventory, \nworkspace('LA-AKS-CLUSTER-SC-PROD-AUSTRALIAEAST-TZM0-WORKSPACE').KubePodInventory,\nworkspace('AKS-CLUSTER-SC-UAT-EASTUS-QRL6-WORKSPACE').KubePodInventory,\nworkspace('AKS-CLUSTER-SC-UAT-WESTUS2-5CHE-WORKSPACE').KubePodInventory\n| where Namespace  in ('@{parameters('desired_namespace')}')\n| where ContainerID !=''\n| distinct  ContainerID, Namespace, ClusterName,_ResourceId, Name\n| join kind= inner (\nunion ContainerInventory, \nworkspace('LA-AKS-CLUSTER-SC-PROD-UKSOUTH-OXN6-WORKSPACE'). ContainerInventory, \nworkspace('LA-AKS-CLUSTER-SC-PROD-AUSTRALIAEAST-TZM0-WORKSPACE').ContainerInventory,\nworkspace('AKS-CLUSTER-SC-UAT-EASTUS-QRL6-WORKSPACE').ContainerInventory,\nworkspace('AKS-CLUSTER-SC-UAT-WESTUS2-5CHE-WORKSPACE').ContainerInventory\n| extend env= case(_ResourceId contains \"uat\" , \"UAT\", \"Prod\")\n| where Repository contains 'acrsceastusxe5d'\n| where ContainerState !='Deleted'\n| distinct  Image, ImageID,Repository, ContainerID, ImageTag, TimeGenerated,_ResourceId, env, ContainerState)\non  ContainerID,_ResourceId\n| distinct  Image, ImageTag, ClusterName,env, Namespace,ContainerState\n| order by Image, ImageTag desc\n| summarize min(ImageTag) by Image,Namespace",
+								"body": "let results = union KubePodInventory, \n workspace('LA-AKS-CLUSTER-SC-PROD-UKSOUTH-OXN6-WORKSPACE'). KubePodInventory, \n workspace('LA-AKS-CLUSTER-SC-PROD-AUSTRALIAEAST-TZM0-WORKSPACE').KubePodInventory,\nworkspace('AKS-CLUSTER-SC-UAT-EASTUS-QRL6-WORKSPACE').KubePodInventory,\nworkspace('AKS-CLUSTER-SC-UAT-WESTUS2-5CHE-WORKSPACE').KubePodInventory\n| where Namespace  in ('@{parameters('desired_namespace')}')\n| where ContainerID !=''\n| distinct ContainerID, Namespace, ClusterName,_ResourceId, Name\n| join kind= inner (\nunion ContainerInventory, \n workspace('LA-AKS-CLUSTER-SC-PROD-UKSOUTH-OXN6-WORKSPACE'). ContainerInventory, \n workspace('LA-AKS-CLUSTER-SC-PROD-AUSTRALIAEAST-TZM0-WORKSPACE').ContainerInventory,\nworkspace('AKS-CLUSTER-SC-UAT-EASTUS-QRL6-WORKSPACE').ContainerInventory,\nworkspace('AKS-CLUSTER-SC-UAT-WESTUS2-5CHE-WORKSPACE').ContainerInventory\n| extend env= case(_ResourceId has \"prod\", \"Prod\", \"UAT\")\n| where Image startswith_cs '@{parameters('desired_namespace')}'\n| where Repository == 'acrsceastusxe5d.azurecr.io'\n//| where ContainerState !='Deleted'\n| distinct  Image, ImageID, Repository, ContainerID, ImageTag, TimeGenerated,_ResourceId, env, ContainerState)\non  ContainerID,_ResourceId\n| distinct  Image, ImageTag, ClusterName, env, Namespace, ContainerState\n| order by ImageTag, Image desc;\nlet prod = (results\n| where env == \"Prod\"\n| summarize make_set(ImageTag,3) by Image, Namespace);\nlet uat = (results\n| where env == \"UAT\"\n| summarize make_set(ImageTag,2) by Image, Namespace);\nprod\n| union uat \n| summarize deployed_versions = make_set(set_ImageTag,5) by Image, Namespace ",
 								"host": {
 									"connection": {
 										"name": "@parameters('$connections')['azuremonitorlogs']['connectionId']"
@@ -325,7 +275,7 @@
 									"resourcename": "AKS-CLUSTER-SC-PROD-EASTUS-PD4B-WORKSPACE",
 									"resourcetype": "Log Analytics Workspace",
 									"subscriptions": "264614c3-e12f-4a52-8380-902410e8ac2d",
-									"timerange": "Last 24 hours"
+									"timerange": "Last 7 days"
 								}
 							},
 							"runAfter": {},
